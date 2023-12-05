@@ -5,14 +5,16 @@
 
 template <typename TreeItemType, typename FunctionType>
 BinaryTree<TreeItemType, FunctionType>::BinaryTree(
-    const TreeItemType &rootItem) {
+    const TreeItemType &rootItem) 
+{
   root = new NodeType(rootItem);
 }
 
 template <typename TreeItemType, typename FunctionType>
 BinaryTree<TreeItemType, FunctionType>::BinaryTree(const TreeItemType &rootItem,
                                                    BinaryTree &leftTree,
-                                                   BinaryTree &rightTree) {
+                                                   BinaryTree &rightTree) 
+{
   root = new NodeType(rootItem);
 
   attachLeftSubtree(leftTree);
@@ -77,6 +79,7 @@ void BinaryTree<TreeItemType, FunctionType>::attachLeft(
   } else if (root->leftChildPtr != nullptr) {
     throw std::logic_error("Cannot overwrite left subtree");
   } else {
+    //only if there is a root node that does not already have a left subtree can we attach a new item
     root->leftChildPtr = new NodeType(newItem);
   }
 }
@@ -84,7 +87,16 @@ void BinaryTree<TreeItemType, FunctionType>::attachLeft(
 template <typename TreeItemType, typename FunctionType>
 void BinaryTree<TreeItemType, FunctionType>::attachRight(
     const TreeItemType &newItem) {
- //TODO
+
+    if (root == nullptr) {
+        throw std::logic_error("Empty tree in BinaryTree::attachRight");
+    }
+    else if (root->rightChildPtr != nullptr) {
+        throw std::logic_error("Cannot overwrite right subtree");
+    }
+    else {
+        root->rightChildPtr = new NodeType(newItem);
+    }
 }
 
 template <typename TreeItemType, typename FunctionType>
@@ -103,7 +115,18 @@ void BinaryTree<TreeItemType, FunctionType>::attachLeftSubtree(
 template <typename TreeItemType, typename FunctionType>
 void BinaryTree<TreeItemType, FunctionType>::attachRightSubtree(
     BinaryTree &rightTree) {
-//TODO
+
+    if (root == nullptr) {
+        throw std::logic_error("Empty tree in BinaryTree::attachRightSubtree");
+    }
+    else if (root->rightChildPtr != nullptr) {
+        throw std::logic_error("Cannot overwrite right subtree");
+    }
+    else {
+        root->rightChildPtr = rightTree.root;
+        //Done so that only rightChildPtr points to the root node of rightTree, and rightTree.root points to nothing
+        rightTree.root = nullptr;
+    }
 }
 
 template <typename TreeItemType, typename FunctionType>
@@ -120,7 +143,15 @@ void BinaryTree<TreeItemType, FunctionType>::detachLeftSubtree(
 template <typename TreeItemType, typename FunctionType>
 void BinaryTree<TreeItemType, FunctionType>::detachRightSubtree(
     BinaryTree &rightTree) {
-  //TODO
+
+    if (root == nullptr) {
+        throw std::logic_error("Empty tree in BinaryTree::detachRightSubtree");
+    }
+    else {
+        //hmm
+        rightTree = BinaryTree(root->rightChildPtr);
+        root->rightChildPtr = nullptr;
+    }
 }
 
 template <typename TreeItemType, typename FunctionType>
@@ -134,12 +165,16 @@ BinaryTree<TreeItemType, FunctionType>::leftSubtree() const {
 template <typename TreeItemType, typename FunctionType>
 BinaryTree<TreeItemType, FunctionType>
 BinaryTree<TreeItemType, FunctionType>::rightSubtree() const {
-  //TODO
+
+    NodeType* subTreePtr = nullptr;
+    copyTree(root->rightChildPtr, subTreePtr);
+    return BinaryTree(subTreePtr);
 }
 
 template <typename TreeItemType, typename FunctionType>
 void BinaryTree<TreeItemType, FunctionType>::preorderTraverse(
     FunctionType visit) {
+    //we can define what the visit function does
   preorder(root, visit);
 }
 
@@ -162,8 +197,20 @@ void BinaryTree<TreeItemType, FunctionType>::copyTree(
   if (treePtr != nullptr) { 
     //TODO
     // copy root node
+      newTreePtr->item = treePtr->item;
     // copy left subtree
+      /*
+      BinaryTree leftTree = BinaryTree(treePtr->leftChildPtr);
+      attachLeftSubtree(leftTree);
+      */
+      newTreePtr->leftChildPtr = treePtr->leftChildPtr;
     // copy right subtree
+      /*
+      BinaryTree rightTree = BinaryTree(treePtr->rightChildPtr);
+      attachRightSubtree(rightTree);
+      */
+      newTreePtr->rightChildPtr = treePtr->rightChildPtr;
+
    
   } else {
     newTreePtr = nullptr; // copy empty tree
@@ -176,8 +223,9 @@ void BinaryTree<TreeItemType, FunctionType>::destroyTree(NodeType *&treePtr) {
   if (treePtr != nullptr) {
     //TODO
     //destroy left subtree
+      destroyTree(treePtr->leftChildPtr);
     //destroy right subtree
-
+      destroyTree(treePtr->rightChildPtr);
     // delete root
     delete treePtr;
     treePtr = nullptr;
@@ -188,7 +236,9 @@ template <typename TreeItemType, typename FunctionType>
 void BinaryTree<TreeItemType, FunctionType>::preorder(NodeType *treePtr,
                                                       FunctionType visit) {
   if (treePtr != nullptr) {
-   //TODO
+      visit(treePtr->item);
+      preorder(treePtr->leftChildPtr, visit);
+      preorder(treePtr->rightChildPtr, visit);
   }
 }
 
@@ -196,7 +246,9 @@ template <typename TreeItemType, typename FunctionType>
 void BinaryTree<TreeItemType, FunctionType>::inorder(NodeType *treePtr,
                                                      FunctionType visit) {
   if (treePtr != nullptr) {
-   //TODO
+      inorder(treePtr->leftChildPtr, visit);
+      visit(treePtr->item);
+      inorder(treePtr->rightChildPtr, visit);
   }
 }
 
@@ -204,7 +256,9 @@ template <typename TreeItemType, typename FunctionType>
 void BinaryTree<TreeItemType, FunctionType>::postorder(NodeType *treePtr,
                                                        FunctionType visit) {
   if (treePtr != nullptr) {
-   //TODO
+      postorder(treePtr->leftChildPtr, visit);
+      postorder(treePtr->rightChildPtr, visit);
+      visit(treePtr->item);
   }
 }
 
@@ -212,4 +266,24 @@ template <typename TreeItemType, typename FunctionType>
 BinaryTree<TreeItemType, FunctionType> BinaryTree<TreeItemType, FunctionType>::makeBinaryTree(const TreeItemType *array, int low, int high) {
     std::cout << "low, high = " << low << " " << high << std::endl;
     //TODO
+    if (low > high) {
+        root = nullptr;
+        return *this;
+    }
+    if (low == high) {
+        root = new NodeType(array[low]);
+        return *this;
+    }
+    int mid = low + (high - low) / 2;
+    BinaryTree leftTree;
+    leftTree.makeBinaryTree(array, low, mid - 1);
+    BinaryTree rightTree;
+    rightTree.makeBinaryTree(array, mid + 1, high);
+    root = new NodeType(array[mid]);
+    if (!leftTree.isEmpty()) {
+        attachLeftSubtree(leftTree);
+    }
+    if (!rightTree.isEmpty()) {
+        attachRightSubtree(rightTree);
+    }
 }
